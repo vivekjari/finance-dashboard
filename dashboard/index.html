@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financial Model Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'dm-sans': ['DM Sans', 'sans-serif'],
+            'instrument': ['Instrument Sans', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen" style="background:#0a0a0a">
+  <div class="flex flex-col gap-8 px-3.5 py-7 w-full">
+    <!-- Header / Navbar -->
+    <header class="w-full">
+      <nav class="flex items-center justify-between w-full">
+        <!-- Left Section: Refresh DB Button -->
+        <div class="flex items-center gap-4 pr-8">
+          <button 
+            id="refreshDatabaseButton"
+            onclick="refreshDatabase()"
+            class="px-3 py-2 h-[35px] bg-zinc-800 border border-zinc-600 rounded-md font-instrument font-medium text-xs text-white hover:bg-zinc-700 hover:border-zinc-500 transition-all duration-200 cursor-pointer"
+          >
+            Refresh DB
+          </button>
+        </div>
+
+        <!-- Center Section: Title -->
+        <h1 class="flex-1 font-dm-sans font-bold text-xl text-white tracking-wide">
+          FINANCIAL MODEL DASHBOARD
+        </h1>
+
+        <!-- Right Section: Source Button + Time Period Toggle -->
+        <button 
+          onclick="handleSource()"
+          class="mr-4 px-4 py-2 h-[35px] bg-zinc-800 border border-zinc-600 rounded-md font-instrument font-medium text-sm text-white hover:bg-zinc-700 hover:border-zinc-500 transition-all duration-200 cursor-pointer"
+        >
+          Source
+        </button>
+
+        <select 
+          id="yearSelector"
+          onchange="handleFilterChange()"
+          class="mr-2 px-3 py-2 h-[35px] bg-zinc-800 border border-zinc-600 rounded-md font-instrument font-medium text-sm text-white hover:bg-zinc-700 hover:border-zinc-500 transition-all duration-200 cursor-pointer"
+        >
+          <option value="">Year</option>
+        </select>
+
+        <select 
+          id="periodDetailSelector"
+          onchange="handleFilterChange()"
+          class="mr-4 px-3 py-2 h-[35px] bg-zinc-800 border border-zinc-600 rounded-md font-instrument font-medium text-sm text-white hover:bg-zinc-700 hover:border-zinc-500 transition-all duration-200 cursor-pointer hidden"
+        >
+        </select>
+
+        <div class="flex items-center bg-zinc-800 border border-zinc-600 rounded-md p-1 gap-0.5">
+          <button 
+            onclick="setTimePeriod('year')"
+            data-period="year"
+            class="toggle-btn active px-3 py-2 h-[27px] w-[60px] flex items-center justify-center rounded font-instrument font-medium text-xs transition-all duration-200"
+          >
+            Year
+          </button>
+          <button 
+            onclick="setTimePeriod('quarter')"
+            data-period="quarter"
+            class="toggle-btn px-3 py-2 h-[27px] w-[60px] flex items-center justify-center rounded font-instrument font-medium text-xs transition-all duration-200"
+          >
+            Quarter
+          </button>
+          <button 
+            onclick="setTimePeriod('month')"
+            data-period="month"
+            class="toggle-btn px-3 py-2 h-[27px] w-[60px] flex items-center justify-center rounded font-instrument font-medium text-xs transition-all duration-200"
+          >
+            Month
+          </button>
+          <button 
+            onclick="setTimePeriod('week')"
+            data-period="week"
+            class="toggle-btn px-3 py-2 h-[27px] w-[60px] flex items-center justify-center rounded font-instrument font-medium text-xs transition-all duration-200"
+          >
+            Week
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Main Dashboard Content -->
+    <main class="flex gap-4 w-full">
+      
+      <!-- Left Column: Forecast Financial Position Chart -->
+      <div class="flex-1 min-w-[350px] border border-zinc-600 rounded-xl p-2 card-gradient">
+        <div class="px-4 py-2">
+          <h2 class="font-instrument font-semibold text-lg text-white leading-7">
+            FORECAST FINANCIAL POSITION
+          </h2>
+        </div>
+        <div class="bg-zinc-900 border border-zinc-700 rounded-xl shadow-lg h-[375px] relative overflow-hidden p-4">
+          <!-- Legend -->
+          <div class="flex flex-wrap gap-4 mb-2">
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-[#9bdfc4]"></div>
+              <span class="font-instrument font-medium text-[10px] text-zinc-400">REVENUE</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-[#f99bab]"></div>
+              <span class="font-instrument font-medium text-[10px] text-zinc-400">COSTS - Costs Of Goods Sold</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-[#ffb44f]"></div>
+              <span class="font-instrument font-medium text-[10px] text-zinc-400">COSTS - Overhead</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-[#9f97f7]"></div>
+              <span class="font-instrument font-medium text-[10px] text-zinc-400">PROFIT</span>
+            </div>
+          </div>
+          
+          <!-- Chart Canvas -->
+          <div class="relative h-[310px]">
+            <canvas id="forecastChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle Column: Net Cash Position + Bottom Cards -->
+      <div class="flex flex-col gap-2.5 w-[463px] shrink-0">
+        <!-- Net Cash Position Card -->
+        <div class="w-full border border-zinc-600 rounded-xl p-2 card-gradient-alt backdrop-blur-[100px] relative">
+          <div class="px-4 py-2">
+            <h2 class="font-instrument font-semibold text-lg text-white leading-7">
+              Net (free) cash position
+            </h2>
+          </div>
+          <div class="bg-zinc-900 border border-zinc-700 rounded-xl h-[248px] relative overflow-hidden p-6 flex flex-col justify-between">
+            <!-- Content -->
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-sm text-zinc-400">GROSS CASH POSITION (BANK)</span>
+              <span class="font-instrument font-semibold text-3xl text-white leading-10" data-metric="gross-cash-position">--</span>
+              <div class="flex items-center gap-1 mt-1">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                </svg>
+                <span class="font-instrument font-medium text-sm text-zinc-400" data-change-seq>--</span>
+                <span class="font-instrument font-medium text-sm text-zinc-400 ml-1">VS LAST 3 MONTHS</span>
+              </div>
+            </div>
+            
+            <!-- Chart -->
+            <svg class="absolute bottom-0 left-0 right-0 h-[115px]" viewBox="0 0 460 115" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="cashGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stop-color="#10b981" stop-opacity="0.6"/>
+                  <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,80 Q40,70 80,60 T160,50 T240,30 T320,25 T400,35 L460,40 L460,115 L0,115 Z" 
+                    fill="url(#cashGradient)"/>
+              <path d="M0,80 Q40,70 80,60 T160,50 T240,30 T320,25 T400,35 L460,40" 
+                    stroke="#10b981" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div class="absolute inset-0 pointer-events-none rounded-xl shadow-[inset_4px_4px_12.8px_0px_rgba(0,0,0,0.25)]"></div>
+        </div>
+
+        <!-- Bottom Two Cards -->
+        <div class="flex gap-2.5">
+          <!-- Net Profit Card -->
+          <div class="kpi-card flex-1 cursor-pointer" onclick="handleCardClick('net-profit')">
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">NET PROFIT</span>
+              <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="net-profit">--</span>
+            </div>
+            <div class="flex items-end justify-between w-full">
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+              <svg class="w-10 h-[26px]" viewBox="0 0 40 26">
+                <path d="M0,20 Q10,15 20,12 T40,8" stroke="#10b981" stroke-width="2" fill="none"/>
+              </svg>
+            </div>
+            <div class="absolute inset-0 pointer-events-none rounded-lg shadow-[inset_4px_4px_12.8px_0px_rgba(71,71,71,0.25)]"></div>
+          </div>
+
+          <!-- Growth Cash Position Card -->
+          <div class="kpi-card flex-1 cursor-pointer" onclick="handleCardClick('growth-cash')">
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">GROWTH CASH POSITION</span>
+              <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="growth-cash-position">--</span>
+            </div>
+            <div class="flex items-end justify-between w-full">
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+              <svg class="w-10 h-[26px]" viewBox="0 0 40 26">
+                <path d="M0,8 Q10,12 20,15 T40,20" stroke="#fca5a5" stroke-width="2" fill="none"/>
+              </svg>
+            </div>
+            <div class="absolute inset-0 pointer-events-none rounded-lg shadow-[inset_4px_4px_12.8px_0px_rgba(71,71,71,0.25)]"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column 1: Three Stacked Cards -->
+      <div class="flex flex-col gap-2.5 w-[221px] shrink-0">
+        <!-- Gross Cash Position (Bank) -->
+        <div class="kpi-card-tall cursor-pointer" onclick="handleCardClick('gross-cash')">
+          <div class="flex flex-col">
+            <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">GROSS CASH POSITION (BANK)</span>
+            <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="gross-cash-position-2">--</span>
+          </div>
+          <div class="flex items-end justify-between w-full">
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+            <svg class="w-20 h-[52px]" viewBox="0 0 80 52">
+              <path d="M0,40 Q20,35 40,25 T80,15" stroke="#10b981" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div class="absolute inset-0 pointer-events-none rounded-lg shadow-[inset_4px_4px_12.8px_0px_rgba(71,71,71,0.25)]"></div>
+        </div>
+
+        <!-- Revenue -->
+        <div class="kpi-card-tall cursor-pointer" onclick="handleCardClick('revenue')">
+          <div class="flex flex-col">
+            <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">REVENUE</span>
+            <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="revenue">--</span>
+          </div>
+          <div class="flex items-end justify-between w-full">
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+            <svg class="w-20 h-[52px]" viewBox="0 0 80 52">
+              <path d="M0,40 Q20,35 40,25 T80,15" stroke="#10b981" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div class="absolute inset-0 pointer-events-none rounded-lg shadow-[inset_4px_4px_12.8px_0px_rgba(71,71,71,0.25)]"></div>
+        </div>
+
+        <!-- Operational Costs -->
+        <div class="kpi-card-tall cursor-pointer" onclick="handleCardClick('operational-costs')">
+          <div class="flex flex-col">
+            <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">OPERATIONAL COSTS</span>
+            <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="operating-expenses">--</span>
+          </div>
+          <div class="flex items-end justify-between w-full">
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+            <svg class="w-20 h-[52px]" viewBox="0 0 80 52">
+              <path d="M0,15 Q20,20 40,30 T80,40" stroke="#fca5a5" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div class="absolute inset-0 pointer-events-none rounded-lg shadow-[inset_4px_4px_12.8px_0px_rgba(71,71,71,0.25)]"></div>
+        </div>
+      </div>
+
+      <!-- Right Column 2: Three Stacked Cards -->
+      <div class="flex flex-col gap-2.5 w-[221px] shrink-0">
+        <!-- Temporary Frozen Cash -->
+        <div class="kpi-card-tall cursor-pointer" onclick="handleCardClick('frozen-cash')">
+          <div class="flex flex-col">
+            <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">TEMPORARY FROZEN CASH</span>
+            <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="frozen-funds">--</span>
+          </div>
+          <div class="flex items-end justify-between w-full">
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+            <svg class="w-20 h-[52px]" viewBox="0 0 80 52">
+              <path d="M0,15 Q20,20 40,30 T80,40" stroke="#fca5a5" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div class="absolute inset-0 pointer-events-none rounded-lg shadow-[inset_4px_4px_12.8px_0px_rgba(71,71,71,0.25)]"></div>
+        </div>
+
+        <!-- Costs of Goods Sold -->
+        <div class="kpi-card-tall cursor-pointer" onclick="handleCardClick('cogs')">
+          <div class="flex flex-col">
+            <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">COSTS OF GOODS SOLD</span>
+            <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">PRODUCT RELATED COSTS</span>
+            <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="cogs-2">--</span>
+          </div>
+          <div class="flex items-end justify-between w-full">
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+            <svg class="w-20 h-[52px]" viewBox="0 0 80 52">
+              <path d="M0,40 Q20,35 40,25 T80,15" stroke="#10b981" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div class="absolute inset-0 pointer-events-none rounded-lg shadow-[inset_4px_4px_12.8px_0px_rgba(71,71,71,0.25)]"></div>
+        </div>
+
+        <!-- Net Profit Margin -->
+        <div class="kpi-card-tall cursor-pointer" onclick="handleCardClick('profit-margin')">
+          <div class="flex flex-col">
+            <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">NET PROFIT MARGIN</span>
+            <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="net-profit-margin">--</span>
+          </div>
+          <div class="flex items-end justify-between w-full">
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+            <svg class="w-20 h-[52px]" viewBox="0 0 80 52">
+              <path d="M0,40 Q20,35 40,25 T80,15" stroke="#10b981" stroke-width="2" fill="none"/>
+            </svg>
+          </div>
+          <div class="absolute inset-0 pointer-events-none rounded-lg shadow-[inset_4px_4px_12.8px_0px_rgba(71,71,71,0.25)]"></div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- SLICE 3 & 4: Side by Side Layout -->
+    <section class="px-3.5 pb-8">
+      <div class="flex gap-4">
+        <!-- LEFT COLUMN: Slice 3 - Product Related Costs -->
+        <div class="flex-1 flex flex-col gap-4 card-gradient border border-zinc-600 rounded-xl p-2">
+          <!-- Section Header -->
+          <div class="p-2">
+            <h2 class="font-instrument font-semibold text-lg text-white mb-4">
+              PRODUCT RELATED COSTS GROSS REVENUE - cogs
+            </h2>
+        
+        <!-- Three KPI Cards Row -->
+        <div class="flex gap-4">
+          <!-- Gross Revenue Card -->
+          <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('gross-revenue')">
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">GROSS REVENUE</span>
+              <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="total-revenue">--</span>
+            </div>
+            <div class="flex items-end justify-between w-full">
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+              <svg class="w-16 h-10" viewBox="0 0 64 40">
+                <path d="M0,30 Q16,25 32,18 T64,12" stroke="#10b981" stroke-width="2" fill="none"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Product Related Costs (COGS) Card -->
+          <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('product-cogs')">
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">PRODUCT RELATED COSTS (COGS)</span>
+              <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="cogs">--</span>
+            </div>
+            <div class="flex items-end justify-between w-full">
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+              <svg class="w-16 h-10" viewBox="0 0 64 40">
+                <path d="M0,12 Q16,18 32,25 T64,30" stroke="#fca5a5" stroke-width="2" fill="none"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Gross Revenue + Gross Margin Card -->
+          <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('gross-margin')">
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">GROSS REVENUE + GROSS MARGIN</span>
+              <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="gross-profit">--</span>
+            </div>
+            <div class="flex items-end justify-between w-full">
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+              <svg class="w-16 h-10" viewBox="0 0 64 40">
+                <path d="M0,30 Q16,25 32,18 T64,12" stroke="#10b981" stroke-width="2" fill="none"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Revenue Chart Section -->
+      <div class="bg-zinc-900 border border-zinc-700 rounded-xl p-4 mb-4">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-instrument font-semibold text-lg text-white">REVENUE</h2>
+          <!-- Legend -->
+          <div class="flex flex-wrap gap-4">
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-[#9bdfc4]"></div>
+              <span class="font-instrument font-medium text-[10px] text-zinc-400">REVENUE SPECIFICATION</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-[#f99bab]"></div>
+              <span class="font-instrument font-medium text-[10px] text-zinc-400">REVENUE SPECIFICATION</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-[#ffb44f]"></div>
+              <span class="font-instrument font-medium text-[10px] text-zinc-400">REVENUE SPECIFICATION</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2.5 h-2.5 rounded-full bg-[#9f97f7]"></div>
+              <span class="font-instrument font-medium text-[10px] text-zinc-400">REVENUE SPECIFICATION</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Chart Canvas -->
+        <div class="relative h-[200px]">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Revenue Specification Cards Grid -->
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <!-- Revenue Spec 1 -->
+        <div class="kpi-card-wide cursor-pointer" onclick="handleCardClick('rev-spec-1')">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">REVENUE SPECIFICATION</span>
+              <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="revenue-stream-1">--</span>
+            </div>
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+          </div>
+          <svg class="w-full h-12" viewBox="0 0 300 48" preserveAspectRatio="none">
+            <path d="M0,40 Q30,35 60,30 T120,25 T180,20 T240,25 T300,30" stroke="#fca5a5" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+
+        <!-- Revenue Spec 2 -->
+        <div class="kpi-card-wide cursor-pointer" onclick="handleCardClick('rev-spec-2')">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">REVENUE SPECIFICATION</span>
+              <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="revenue-stream-2">--</span>
+            </div>
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+          </div>
+          <svg class="w-full h-12" viewBox="0 0 300 48" preserveAspectRatio="none">
+            <path d="M0,35 Q30,30 60,25 T120,20 T180,15 T240,12 T300,10" stroke="#10b981" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+
+        <!-- Revenue Spec 3 -->
+        <div class="kpi-card-wide cursor-pointer" onclick="handleCardClick('rev-spec-3')">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">REVENUE SPECIFICATION</span>
+              <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="revenue-stream-3">--</span>
+            </div>
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+          </div>
+          <svg class="w-full h-12" viewBox="0 0 300 48" preserveAspectRatio="none">
+            <path d="M0,35 Q30,30 60,25 T120,20 T180,15 T240,12 T300,10" stroke="#10b981" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+
+        <!-- Revenue Spec 4 -->
+        <div class="kpi-card-wide cursor-pointer" onclick="handleCardClick('rev-spec-4')">
+          <div class="flex items-start justify-between mb-2">
+            <div class="flex flex-col">
+              <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">REVENUE SPECIFICATION</span>
+              <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="revenue-stream-4">--</span>
+            </div>
+            <div class="flex items-center gap-0.5">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 4L12 8L8 12" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(90 8 8)"/>
+              </svg>
+              <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+            </div>
+          </div>
+          <svg class="w-full h-12" viewBox="0 0 300 48" preserveAspectRatio="none">
+            <path d="M0,40 Q30,35 60,30 T120,25 T180,20 T240,25 T300,30" stroke="#fca5a5" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Revenue Specifications Table -->
+      <div class="bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden">
+        <!-- Table Header -->
+        <div class="flex items-center justify-between px-5 py-3 border-b border-zinc-700">
+          <div class="flex flex-col">
+            <span class="font-instrument font-semibold text-lg text-white">REVENUE SPECIFICATIONS</span>
+            <span class="font-instrument font-medium text-sm text-white">MONTHLY</span>
+          </div>
+          <div class="flex flex-col items-end">
+            <span class="font-instrument font-medium text-[10px] text-zinc-400">REVENUE SPECIFICATION</span>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+              <span class="font-instrument font-semibold text-lg text-white" data-metric="section-total-revenue">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <table class="w-full">
+          <thead class="bg-zinc-950">
+            <tr>
+              <th class="text-left px-4 py-3 font-instrument font-semibold text-[10px] text-zinc-500 w-[200px]">Project Entities</th>
+              <th class="text-left px-4 py-3 font-instrument font-semibold text-[10px] text-zinc-500">Revenue</th>
+              <th class="text-left px-4 py-3 font-instrument font-semibold text-[10px] text-zinc-500">COGS</th>
+              <th class="text-left px-4 py-3 font-instrument font-semibold text-[10px] text-zinc-500">Overhead</th>
+              <th class="text-left px-4 py-3 font-instrument font-semibold text-[10px] text-zinc-500">NET PROFIT</th>
+            </tr>
+          </thead>
+          <tbody id="projectFinancialTableBody">
+          </tbody>
+        </table>
+      </div>
+        </div>
+        <!-- END LEFT COLUMN -->
+
+        <!-- RIGHT COLUMN: Slice 4 - Operational Costs -->
+        <div class="flex-1 flex flex-col gap-4 card-gradient border border-zinc-600 rounded-xl p-2">
+          <!-- Section Header -->
+          <div class="p-2">
+            <h2 class="font-instrument font-semibold text-lg text-white mb-4">
+              OPERATIONAL COSTS (overhead)
+            </h2>
+            
+            <!-- Three KPI Cards Row -->
+            <div class="flex gap-4">
+              <!-- Gross Revenue Card -->
+              <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('op-gross-revenue')">
+                <div class="flex flex-col">
+                  <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">GROSS REVENUE</span>
+                  <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="total-revenue-2">--</span>
+                </div>
+                <div class="flex items-end justify-between w-full">
+                  <div class="flex items-center gap-0.5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4L12 8L8 12" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(90 8 8)"/>
+                    </svg>
+                    <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+                  </div>
+                  <svg class="w-16 h-10" viewBox="0 0 64 40">
+                    <path d="M0,12 Q16,18 32,25 T64,30" stroke="#fca5a5" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Operational Margin % Card -->
+              <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('op-margin')">
+                <div class="flex flex-col">
+                  <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">OPERATIONAL MARGIN %</span>
+                  <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="operational-margin">--</span>
+                </div>
+                <div class="flex items-end justify-between w-full">
+                  <div class="flex items-center gap-0.5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                    </svg>
+                    <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+                  </div>
+                  <svg class="w-16 h-10" viewBox="0 0 64 40">
+                    <path d="M0,30 Q16,25 32,18 T64,12" stroke="#10b981" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- EBITDA Card -->
+              <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('ebitda')">
+                <div class="flex flex-col">
+                  <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">EBITDA</span>
+                  <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="ebitda">--</span>
+                </div>
+                <div class="flex items-end justify-between w-full">
+                  <div class="flex items-center gap-0.5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                    </svg>
+                    <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+                  </div>
+                  <svg class="w-16 h-10" viewBox="0 0 64 40">
+                    <path d="M0,30 Q16,25 32,18 T64,12" stroke="#10b981" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cost Ratio Donut Chart Section -->
+          <div class="bg-zinc-900 border border-zinc-700 rounded-xl p-6">
+            <div class="flex items-center gap-8">
+              <!-- Donut Chart -->
+              <div class="relative w-[250px] h-[250px]">
+                <canvas id="costRatioChart"></canvas>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <span class="font-instrument font-semibold text-2xl text-white">Cost Ratio</span>
+                </div>
+              </div>
+              
+              <!-- Legend -->
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between w-[250px] py-2 border-b border-zinc-700">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-[#a855f7]"></div>
+                    <span class="font-instrument font-medium text-sm text-white">Taxes</span>
+                  </div>
+                  <span class="font-instrument text-sm text-zinc-300" data-metric="cost-taxes">--</span>
+                </div>
+                <div class="flex items-center justify-between w-[250px] py-2 border-b border-zinc-700">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-[#06b6d4]"></div>
+                    <span class="font-instrument font-medium text-sm text-white">Salary contracts</span>
+                  </div>
+                  <span class="font-instrument text-sm text-zinc-300" data-metric="cost-salaries">--</span>
+                </div>
+                <div class="flex items-center justify-between w-[250px] py-2 border-b border-zinc-700">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-[#f97316]"></div>
+                    <span class="font-instrument font-medium text-sm text-white">Social Costs</span>
+                  </div>
+                  <span class="font-instrument text-sm text-zinc-300" data-metric="cost-social">--</span>
+                </div>
+                <div class="flex items-center justify-between w-[250px] py-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-3 h-3 rounded-full bg-[#3b82f6]"></div>
+                    <span class="font-instrument font-medium text-sm text-white">Project Costs</span>
+                  </div>
+                  <span class="font-instrument text-sm text-zinc-300" data-metric="cost-project">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Four KPI Cards Row -->
+          <div class="flex gap-4">
+            <!-- Burnrate Card -->
+            <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('burnrate')">
+              <div class="flex flex-col">
+                <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">BURNRATE</span>
+                <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="burnrate">--</span>
+              </div>
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+            </div>
+
+            <!-- Short Term Payables Card -->
+            <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('short-term-payables')">
+              <div class="flex flex-col">
+                <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">SHOT TERM PAYABLES</span>
+                <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="short-term-payables">--</span>
+              </div>
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+            </div>
+
+            <!-- Runway Months Card -->
+            <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('runway-months')">
+              <div class="flex flex-col">
+                <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">RUNWAY MONTHS</span>
+                <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="runway-months">--</span>
+              </div>
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+            </div>
+
+            <!-- Runway Cash Card -->
+            <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('runway-cash')">
+              <div class="flex flex-col">
+                <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">RUNWAY CASH</span>
+                <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="runway-cash">--</span>
+              </div>
+              <div class="flex items-center gap-0.5">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                </svg>
+                <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Costs Specification Table -->
+          <div class="bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden">
+            <!-- Table Header -->
+            <div class="flex items-center justify-between px-5 py-3 border-b border-zinc-700">
+              <div class="flex flex-col">
+                <span class="font-instrument font-semibold text-lg text-white">COSTS SPEFICATION</span>
+                <span class="font-instrument font-medium text-sm text-white">MONTHLY</span>
+              </div>
+              <div class="flex flex-col items-end">
+                <span class="font-instrument font-medium text-[10px] text-zinc-400">REVENUE SPECIFICATION</span>
+                <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-0.5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                    </svg>
+                    <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+                  </div>
+                  <span class="font-instrument font-semibold text-lg text-white" data-metric="section-total-revenue">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <table class="w-full">
+              <thead class="bg-zinc-950">
+                <tr>
+                  <th class="text-left px-4 py-3 font-instrument font-semibold text-[10px] text-zinc-500 w-[200px]">Project Entities</th>
+                  <th class="text-left px-4 py-3 font-instrument font-semibold text-[10px] text-zinc-500">Revenue</th>
+                </tr>
+              </thead>
+              <tbody id="overheadCategoryTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- END RIGHT COLUMN -->
+      </div>
+    </section>
+
+    <!-- SLICE 5: Net Profit Section -->
+    <section class="px-3.5 pb-8">
+      <div class="card-gradient border border-zinc-600 rounded-xl p-4">
+        <!-- Section Header -->
+        <h2 class="font-instrument font-semibold text-lg text-white mb-4 px-2">
+          NET PROFIT
+        </h2>
+
+        <!-- Two Column Layout -->
+        <div class="flex gap-4">
+          <!-- LEFT COLUMN -->
+          <div class="flex-1 flex flex-col gap-4">
+            <!-- Three KPI Cards Row -->
+            <div class="flex gap-4">
+              <!-- EBITDA Card -->
+              <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('np-ebitda')">
+                <div class="flex flex-col">
+                  <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">EBITDA</span>
+                  <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="ebitda-np">--</span>
+                </div>
+                <svg class="w-full h-10" viewBox="0 0 200 40" preserveAspectRatio="none">
+                  <path d="M0,35 Q50,30 100,20 T200,15" stroke="#10b981" stroke-width="2" fill="none"/>
+                </svg>
+              </div>
+
+              <!-- NET PROFIT MARGIN % Card -->
+              <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('np-margin')">
+                <div class="flex flex-col">
+                  <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">NET PROFIT MARGIN %</span>
+                  <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="net-profit-margin-2">--</span>
+                </div>
+                <div class="flex items-end justify-between w-full">
+                  <div class="flex items-center gap-0.5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                    </svg>
+                    <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+                  </div>
+                  <svg class="w-16 h-10" viewBox="0 0 64 40">
+                    <path d="M0,30 Q16,25 32,18 T64,12" stroke="#10b981" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- GROSS REVENUE Card -->
+              <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('np-gross-revenue')">
+                <div class="flex flex-col">
+                  <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">GROSS REVENUE</span>
+                  <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="gross-profit-2">--</span>
+                </div>
+                <div class="flex items-end justify-between w-full">
+                  <div class="flex items-center gap-0.5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                    </svg>
+                    <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+                  </div>
+                  <svg class="w-16 h-10" viewBox="0 0 64 40">
+                    <path d="M0,30 Q16,25 32,18 T64,12" stroke="#10b981" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cash Position Chart -->
+            <div class="bg-zinc-900 border border-zinc-700 rounded-xl p-4">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-instrument font-semibold text-lg text-white">CASH POSITION</h3>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-[#06b6d4]"></div>
+                  <span class="font-instrument text-xs text-zinc-400">NET CASH POSITION</span>
+                </div>
+              </div>
+              
+              <!-- Chart Canvas -->
+              <div class="relative h-[170px]">
+                <canvas id="cashPositionChart"></canvas>
+              </div>
+
+              <!-- Legend -->
+              <div class="flex justify-between mt-4 text-sm">
+                <span class="font-instrument text-zinc-400">3 MONTHS IN THE PAST</span>
+                <span class="font-instrument text-zinc-400 text-right">3 MONTHS IN THE FUTURE</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN -->
+          <div class="flex-1 flex flex-col gap-4">
+            <!-- Three KPI Cards Row -->
+            <div class="flex gap-4">
+              <!-- FREE NET CASH Card -->
+              <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('free-net-cash')">
+                <div class="flex flex-col">
+                  <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">FREE NET CASH</span>
+                  <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="net-cash-position">--</span>
+                </div>
+                <div class="flex items-end justify-between w-full">
+                  <div class="flex items-center gap-0.5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4L12 8L8 12" stroke="#fca5a5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(90 8 8)"/>
+                    </svg>
+                    <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+                  </div>
+                  <svg class="w-16 h-10" viewBox="0 0 64 40">
+                    <path d="M0,12 Q16,18 32,25 T64,30" stroke="#fca5a5" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- FORECASTED NET FREE CASH Card -->
+              <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('forecasted-net-cash')">
+                <div class="flex flex-col">
+                  <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">FORECASTED NET FREE CASH</span>
+                  <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="forecasted-net-cash">--</span>
+                </div>
+                <div class="flex items-end justify-between w-full">
+                  <div class="flex items-center gap-0.5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                    </svg>
+                    <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+                  </div>
+                  <svg class="w-16 h-10" viewBox="0 0 64 40">
+                    <path d="M0,30 Q16,25 32,18 T64,12" stroke="#10b981" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- RESERVES SOLVABILITY Card -->
+              <div class="kpi-card-small flex-1 cursor-pointer" onclick="handleCardClick('reserves-solvability')">
+                <div class="flex flex-col">
+                  <span class="font-instrument font-medium text-[10px] text-zinc-400 leading-[14px]">RESERVES "SOLVABILITY PERCENTAGE</span>
+                  <span class="font-instrument font-semibold text-lg text-white leading-7" data-metric="reserves-solvability">--</span>
+                </div>
+                <div class="flex items-end justify-between w-full">
+                  <div class="flex items-center gap-0.5">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 4L12 8L8 12" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-90 8 8)"/>
+                    </svg>
+                    <span class="font-instrument text-sm text-zinc-400" data-change-seq>--</span>
+                  </div>
+                  <svg class="w-16 h-10" viewBox="0 0 64 40">
+                    <path d="M0,30 Q16,25 32,18 T64,12" stroke="#10b981" stroke-width="2" fill="none"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Forecast Cash Position Table -->
+            <div class="bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden flex-1">
+              <!-- Table Header -->
+              <div class="flex items-center justify-between px-5 py-3 border-b border-zinc-700">
+                <span class="font-instrument font-semibold text-lg text-white">FORECAST CASH POSITION</span>
+                <div class="flex items-center gap-2">
+                  <span class="font-instrument text-xs text-zinc-400">Currency:</span>
+                  <span class="font-instrument text-xs text-white bg-zinc-700 px-2 py-1 rounded">EUR</span>
+                </div>
+              </div>
+
+              <!-- Table -->
+              <table class="w-full">
+                <thead class="bg-zinc-950">
+                  <tr>
+                    <th class="text-left px-3 py-2 font-instrument font-semibold text-[10px] text-zinc-500">Period</th>
+                    <th class="text-left px-3 py-2 font-instrument font-semibold text-[10px] text-zinc-500">Revenue</th>
+                    <th class="text-left px-3 py-2 font-instrument font-semibold text-[10px] text-zinc-500">COGS</th>
+                    <th class="text-left px-3 py-2 font-instrument font-semibold text-[10px] text-zinc-500">Overhead</th>
+                    <th class="text-left px-3 py-2 font-instrument font-semibold text-[10px] text-zinc-500">Income</th>
+                    <th class="text-left px-3 py-2 font-instrument font-semibold text-[10px] text-zinc-500">NET cash position</th>
+                  </tr>
+                </thead>
+                <tbody id="forecastCashTableBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <style>
+    /* Toggle Button States */
+    .toggle-btn {
+      color: #71717a;
+      background: transparent;
+      cursor: pointer;
+    }
+    
+    .toggle-btn:hover:not(.active) {
+      color: #a1a1aa;
+      background: rgba(63, 63, 70, 0.5);
+    }
+    
+    .toggle-btn.active {
+      background: #f4f4f5;
+      color: #27272a;
+      border: 1px solid #27272a;
+    }
+
+    /* Card Gradients */
+    .card-gradient {
+      background: linear-gradient(115deg, rgb(39, 39, 42) 38%, rgba(134, 134, 144, 0) 100%), 
+                  linear-gradient(90deg, rgb(39, 39, 42) 0%, rgb(39, 39, 42) 100%);
+    }
+
+    .card-gradient-alt {
+      background: linear-gradient(124deg, rgb(39, 39, 42) 38%, rgba(134, 134, 144, 0) 100%);
+    }
+
+    /* KPI Cards */
+    .kpi-card {
+      background: #27272a;
+      border: 0.637px solid #3f3f46;
+      border-radius: 7px;
+      padding: 12px;
+      height: 123px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .kpi-card:hover {
+      border-color: #52525b;
+      background: #2d2d30;
+    }
+
+    .kpi-card-tall {
+      background: #27272a;
+      border: 0.637px solid #3f3f46;
+      border-radius: 7px;
+      padding: 12px;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .kpi-card-tall:hover {
+      border-color: #52525b;
+      background: #2d2d30;
+    }
+
+    /* Small KPI Cards for Slice 3 */
+    .kpi-card-small {
+      background: #18181b;
+      border: 0.637px solid #3f3f46;
+      border-radius: 7px;
+      padding: 12px;
+      height: 100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .kpi-card-small:hover {
+      border-color: #52525b;
+      background: #27272a;
+    }
+
+    /* Wide KPI Cards for Revenue Specifications */
+    .kpi-card-wide {
+      background: #18181b;
+      border: 0.637px solid #3f3f46;
+      border-radius: 7px;
+      padding: 12px;
+      height: 100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .kpi-card-wide:hover {
+      border-color: #52525b;
+      background: #27272a;
+    }
+  </style>
+
+  <script>
+    // Current selected time period
+    let currentPeriod = 'year';
+    let currentYear = null;
+    let currentPeriodDetail = null;
+
+    // Handle Source button click - opens the configured Google Sheet
+    async function handleSource() {
+      try {
+        const response = await fetch('/api/v1/source');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        if (data.google_sheets_url) {
+          window.open(data.google_sheets_url, '_blank');
+        } else {
+          alert('Google Sheets URL is not configured.');
+        }
+      } catch (error) {
+        console.error('Unable to open source sheet:', error);
+        alert('Unable to open source sheet.');
+      }
+    }
+
+    // ============================================
+    // LOCAL API DATA INTEGRATION
+    // ============================================
+    
+    const API_BASE_URL = window.location.origin;
+    const DASHBOARD_DATA_URL = `${API_BASE_URL}/api/v1/dashboard-data`;
+    const SYNC_URL = `${API_BASE_URL}/api/v1/sync`;
+    
+    let liveFinancialData = null;
+
+    async function loadAvailableYears() {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/dashboard-data/available-years`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        const selector = document.getElementById('yearSelector');
+        if (!selector) return;
+        selector.innerHTML = '';
+        data.available_years.forEach(year => {
+          const option = document.createElement('option');
+          option.value = year;
+          option.textContent = year;
+          if (year === data.default_year) {
+            option.selected = true;
+            currentYear = year;
+          }
+          selector.appendChild(option);
+        });
+        if (!currentYear && data.default_year) currentYear = data.default_year;
+        updatePeriodDetailSelector();
+      } catch (error) {
+        console.error('Error loading years:', error);
+      }
+    }
+
+    function updatePeriodDetailSelector() {
+      const selector = document.getElementById('periodDetailSelector');
+      if (!selector) return;
+      selector.innerHTML = '';
+      selector.classList.add('hidden');
+      currentPeriodDetail = null;
+
+      if (currentPeriod === 'quarter') {
+        [['1', 'Q1'], ['2', 'Q2'], ['3', 'Q3'], ['4', 'Q4']].forEach(([value, label]) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = label;
+          selector.appendChild(option);
+        });
+        selector.classList.remove('hidden');
+        currentPeriodDetail = 1;
+      } else if (currentPeriod === 'month') {
+        ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].forEach((label, index) => {
+          const option = document.createElement('option');
+          option.value = index + 1;
+          option.textContent = label;
+          selector.appendChild(option);
+        });
+        selector.classList.remove('hidden');
+        currentPeriodDetail = 1;
+      } else if (currentPeriod === 'week') {
+        for (let week = 1; week <= 53; week += 1) {
+          const option = document.createElement('option');
+          option.value = week;
+          option.textContent = `W${week}`;
+          selector.appendChild(option);
+        }
+        selector.classList.remove('hidden');
+        currentPeriodDetail = 1;
+      }
+    }
+
+    function handleFilterChange() {
+      const yearSelector = document.getElementById('yearSelector');
+      const detailSelector = document.getElementById('periodDetailSelector');
+      currentYear = yearSelector && yearSelector.value ? parseInt(yearSelector.value, 10) : currentYear;
+      currentPeriodDetail = detailSelector && !detailSelector.classList.contains('hidden')
+        ? parseInt(detailSelector.value, 10)
+        : null;
+      fetchFinancialData();
+    }
+
+    // Format number as Euro currency
+    function formatEuro(value) {
+      if (value === 0 || value === null || value === undefined) return '€0';
+      if (Math.abs(value) >= 1000000) {
+        return '€' + (value / 1000000).toLocaleString('en-US', { maximumFractionDigits: 2 }) + 'M';
+      }
+      return '€' + value.toLocaleString('en-US');
+    }
+
+    // Format number with thousands separator
+    function formatNumber(value) {
+      if (value === 0 || value === null || value === undefined) return '€0';
+      const prefix = value < 0 ? '-€' : '€';
+      return prefix + Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function formatSignedNumber(value) {
+      if (value === 0 || value === null || value === undefined) return '€0';
+      const prefix = value < 0 ? '-€' : '+€';
+      return prefix + Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function formatPercent(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return '0%';
+      return value.toLocaleString('en-US', { maximumFractionDigits: 1 }) + '%';
+    }
+
+    function formatCurrencyAxis(value) {
+      const absValue = Math.abs(value);
+      const sign = value < 0 ? '-' : '';
+      if (absValue >= 1000000) return `${sign}€${(absValue / 1000000).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`;
+      if (absValue >= 1000) return `${sign}€${(absValue / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })}K`;
+      return `${sign}€${absValue.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+    }
+
+    function allSeriesValues(seriesList) {
+      return seriesList.flat().filter(value => Number.isFinite(Number(value))).map(Number);
+    }
+
+    function chartBounds(values) {
+      const numericValues = values.length ? values : [0];
+      const minValue = Math.min(...numericValues, 0);
+      const maxValue = Math.max(...numericValues, 0);
+      if (minValue === 0 && maxValue === 0) return { min: 0, max: 1 };
+      const span = Math.max(maxValue - minValue, Math.abs(maxValue), 1);
+      const padding = span * 0.12;
+      return {
+        min: Math.floor((minValue - padding) / 1000) * 1000,
+        max: Math.ceil((maxValue + padding) / 1000) * 1000,
+      };
+    }
+
+    function applyDynamicAxis(chart, values) {
+      const bounds = chartBounds(values);
+      chart.options.scales.y.min = bounds.min;
+      chart.options.scales.y.max = bounds.max;
+      chart.options.scales.y.ticks.stepSize = undefined;
+      chart.options.scales.y.ticks.callback = formatCurrencyAxis;
+    }
+
+    const comparisonOrder = [
+      'gross_cash_position',
+      'net_profit',
+      'growth_cash_position',
+      'gross_cash_position',
+      'revenue',
+      'operating_expenses',
+      'frozen_funds',
+      'cogs',
+      'net_profit_margin',
+      'total_revenue',
+      'cogs',
+      'gross_profit',
+      'revenue_stream_1',
+      'revenue_stream_2',
+      'revenue_stream_3',
+      'revenue_stream_4',
+      'total_revenue',
+      'total_revenue',
+      'operational_margin',
+      'ebitda',
+      'burnrate',
+      'short_term_payables',
+      'runway_months',
+      'runway_cash',
+      'operating_expenses',
+      'net_profit_margin',
+      'gross_profit',
+      'net_cash_position',
+      'forecasted_net_cash',
+      'reserves_solvability',
+    ];
+
+    function initializeComparisonBindings() {
+      document.querySelectorAll('[data-change-seq]').forEach((el, index) => {
+        el.dataset.change = comparisonOrder[index] || 'total_revenue';
+        el.removeAttribute('data-change-seq');
+      });
+    }
+
+    function formatChange(value) {
+      if (value === null || value === undefined || Number.isNaN(Number(value))) return '--';
+      const numericValue = Number(value);
+      const sign = numericValue > 0 ? '+' : '';
+      return `${sign}${numericValue.toLocaleString('en-US', { maximumFractionDigits: 1 })}%`;
+    }
+
+    function sparklinePath(width, height, isPositive) {
+      const points = isPositive
+        ? [[0, height * 0.75], [width * 0.28, height * 0.58], [width * 0.55, height * 0.32], [width * 0.78, height * 0.16], [width, height * 0.16]]
+        : [[0, height * 0.22], [width * 0.28, height * 0.35], [width * 0.55, height * 0.62], [width * 0.78, height * 0.78], [width, height * 0.8]];
+      return `M${points[0][0]},${points[0][1]} ` + points.slice(1).map(point => `Q${point[0]},${point[1]} ${point[0]},${point[1]}`).join(' ');
+    }
+
+    function updateComparisonBadges(comparisons) {
+      document.querySelectorAll('[data-change]').forEach((el) => {
+        const value = comparisons ? comparisons[el.dataset.change] : null;
+        const numericValue = value === null || value === undefined ? null : Number(value);
+        el.textContent = formatChange(numericValue);
+        el.classList.remove('text-emerald-500', 'text-red-300', 'text-zinc-400');
+        if (numericValue === null || Number.isNaN(numericValue) || numericValue === 0) {
+          el.classList.add('text-zinc-400');
+        } else if (numericValue > 0) {
+          el.classList.add('text-emerald-500');
+        } else {
+          el.classList.add('text-red-300');
+        }
+
+        const arrowPath = el.closest('.flex')?.querySelector('svg path');
+        if (arrowPath) {
+          if (numericValue === null || Number.isNaN(numericValue) || numericValue === 0) {
+            arrowPath.setAttribute('stroke', '#a1a1aa');
+          } else if (numericValue > 0) {
+            arrowPath.setAttribute('stroke', '#10b981');
+            arrowPath.setAttribute('transform', 'rotate(-90 8 8)');
+          } else {
+            arrowPath.setAttribute('stroke', '#fca5a5');
+            arrowPath.setAttribute('transform', 'rotate(90 8 8)');
+          }
+        }
+
+        const card = el.closest('.kpi-card, .kpi-card-small, .kpi-card-tall, .kpi-card-wide');
+        const sparkPath = card?.querySelector('svg:last-child path');
+        const sparkSvg = card?.querySelector('svg:last-child');
+        if (sparkPath && sparkSvg && sparkPath !== arrowPath) {
+          const viewBox = sparkSvg.getAttribute('viewBox') || '0 0 80 52';
+          const parts = viewBox.split(/\s+/).map(Number);
+          const width = parts[2] || 80;
+          const height = parts[3] || 52;
+          const isPositive = numericValue !== null && !Number.isNaN(numericValue) && numericValue >= 0;
+          sparkPath.setAttribute('d', sparklinePath(width, height, isPositive));
+          sparkPath.setAttribute('stroke', isPositive ? '#10b981' : '#fca5a5');
+        }
+      });
+    }
+
+    // Get value based on current time period
+    function getValueForPeriod(monthlyData, period) {
+      if (!monthlyData || !monthlyData.year1) return 0;
+      return monthlyData.year1.total;
+    }
+
+    // Get monthly array for charts
+    function getMonthlyArray(monthlyData) {
+      if (!monthlyData || !monthlyData.year1) return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      const y1 = monthlyData.year1;
+      return [y1.jan, y1.feb, y1.mar, y1.apr, y1.may, y1.jun, y1.jul, y1.aug, y1.sep, y1.oct, y1.nov, y1.dec];
+    }
+
+    // Fetch financial data from the local FastAPI service
+    async function fetchFinancialData() {
+      try {
+        console.log('Fetching financial data from local API...');
+        const params = new URLSearchParams();
+        if (currentYear) params.set('year', currentYear);
+        params.set('period', currentPeriod);
+        if (currentPeriod === 'quarter' && currentPeriodDetail) params.set('quarter', currentPeriodDetail);
+        if (currentPeriod === 'month' && currentPeriodDetail) params.set('month', currentPeriodDetail);
+        if (currentPeriod === 'week' && currentPeriodDetail) params.set('week', currentPeriodDetail);
+        const response = await fetch(`${DASHBOARD_DATA_URL}?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        liveFinancialData = await response.json();
+        console.log('Financial data loaded:', liveFinancialData);
+        
+        // Update the dashboard with live data
+        updateDashboardWithLiveData();
+        
+        return liveFinancialData;
+      } catch (error) {
+        console.error('Error fetching financial data:', error);
+        return null;
+      }
+    }
+
+    async function refreshDatabase() {
+      const button = document.getElementById('refreshDatabaseButton');
+      const originalText = button ? button.textContent : '';
+      try {
+        if (button) {
+          button.textContent = 'Syncing...';
+          button.disabled = true;
+          button.classList.add('opacity-60');
+        }
+        const response = await fetch(SYNC_URL, { method: 'POST' });
+        if (!response.ok) {
+          throw new Error(`Sync failed with status ${response.status}`);
+        }
+        await fetchFinancialData();
+        if (button) button.textContent = 'Synced';
+        setTimeout(() => {
+          if (button) button.textContent = originalText;
+        }, 1200);
+      } catch (error) {
+        console.error('Error refreshing database:', error);
+        if (button) button.textContent = 'Sync failed';
+        setTimeout(() => {
+          if (button) button.textContent = originalText;
+        }, 1800);
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.classList.remove('opacity-60');
+        }
+      }
+    }
+
+    // Update all dashboard elements with live data
+    function updateDashboardWithLiveData() {
+      if (!liveFinancialData) return;
+      
+      const data = liveFinancialData;
+      const period = currentPeriod;
+      const totalRevenue = getValueForPeriod(data.summary.totalRevenue, period);
+      const grossProfit = getValueForPeriod(data.summary.grossProfit, period);
+      const netResult = getValueForPeriod(data.summary.netResult, period);
+      const grossMargin = data.metrics ? data.metrics.gross_margin_pct : (totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0);
+      const netMargin = data.metrics ? data.metrics.net_profit_margin_pct : (totalRevenue > 0 ? (netResult / totalRevenue) * 100 : 0);
+      
+      // === SLICE 2: Main Dashboard KPIs ===
+      updateElementText('[data-metric="gross-cash-position"]', formatNumber(getValueForPeriod(data.liquidityPosition.bankBalance, period)));
+      updateElementText('[data-metric="gross-cash-position-2"]', formatNumber(getValueForPeriod(data.liquidityPosition.bankBalance, period)));
+      updateElementText('[data-metric="net-cash-position"]', formatNumber(getValueForPeriod(data.liquidityPosition.netCashPosition, period)));
+      updateElementText('[data-metric="net-profit"]', formatNumber(getValueForPeriod(data.summary.netResult, period)));
+      updateElementText('[data-metric="growth-cash-position"]', formatNumber(getValueForPeriod(data.liquidityPosition.bankBalance, period)));
+      updateElementText('[data-metric="revenue"]', formatNumber(getValueForPeriod(data.summary.totalRevenue, period)));
+      updateElementText('[data-metric="operating-expenses"]', formatNumber(getValueForPeriod(data.summary.operatingExpenses, period)));
+      updateElementText('[data-metric="frozen-funds"]', formatNumber(getValueForPeriod(data.liquidityPosition.frozenFunds, period)));
+      updateElementText('[data-metric="cogs-2"]', formatNumber(getValueForPeriod(data.summary.cogs, period)));
+      updateElementText('[data-metric="net-profit-margin"]', formatPercent(netMargin));
+      
+      // === SLICE 3: Product Related Costs ===
+      updateElementText('[data-metric="total-revenue"]', formatNumber(getValueForPeriod(data.summary.totalRevenue, period)));
+      updateElementText('[data-metric="cogs"]', formatNumber(getValueForPeriod(data.summary.cogs, period)));
+      updateElementText('[data-metric="gross-profit"]', `${formatNumber(grossProfit)} / ${formatPercent(grossMargin)}`);
+      
+      // Revenue Streams
+      updateElementText('[data-metric="revenue-stream-1"]', formatNumber(getValueForPeriod(data.revenueStreams.stream1, period)));
+      updateElementText('[data-metric="revenue-stream-2"]', formatNumber(getValueForPeriod(data.revenueStreams.stream2, period)));
+      updateElementText('[data-metric="revenue-stream-3"]', formatNumber(getValueForPeriod(data.revenueStreams.stream3, period)));
+      updateElementText('[data-metric="revenue-stream-4"]', formatNumber(getValueForPeriod(data.revenueStreams.stream4, period)));
+      
+      // === SLICE 4: Operational Costs ===
+      updateElementText('[data-metric="total-revenue-2"]', formatNumber(getValueForPeriod(data.summary.totalRevenue, period)));
+      updateElementText('[data-metric="ebitda"]', formatNumber(getValueForPeriod(data.summary.ebitda, period)));
+      
+      // Calculate operational margin %
+      const opMargin = data.metrics ? data.metrics.operational_margin_pct : netMargin;
+      updateElementText('[data-metric="operational-margin"]', formatPercent(opMargin));
+      
+      // Cost breakdown (from operating expenses)
+      updateElementText('[data-metric="cost-taxes"]', formatNumber(getValueForPeriod(data.summary.taxes, period)));
+      updateElementText('[data-metric="cost-salaries"]', formatNumber(getValueForPeriod(data.operatingExpenses.salaries, period)));
+      updateElementText('[data-metric="cost-social"]', formatNumber(getValueForPeriod(data.operatingExpenses.generalCosts, period)));
+      updateElementText('[data-metric="cost-project"]', formatNumber(getValueForPeriod(data.cogs.projectCosts, period)));
+      
+      // Burnrate and runway calculations
+      const monthlyBurn = data.metrics ? data.metrics.monthly_burnrate : getValueForPeriod(data.summary.operatingExpenses, 'month');
+      updateElementText('[data-metric="burnrate"]', formatNumber(monthlyBurn));
+      updateElementText('[data-metric="short-term-payables"]', formatNumber(data.metrics ? data.metrics.short_term_payables : getValueForPeriod(data.summary.operatingExpenses, period)));
+      
+      // Runway = Cash / Monthly Burn
+      const cashPosition = getValueForPeriod(data.liquidityPosition.netCashPosition, period);
+      const runwayMonths = data.metrics ? data.metrics.runway_months : (monthlyBurn > 0 ? cashPosition / monthlyBurn : 0);
+      updateElementText('[data-metric="runway-months"]', runwayMonths.toLocaleString('en-US', { maximumFractionDigits: 1 }) + ' months');
+      updateElementText('[data-metric="runway-cash"]', formatNumber(cashPosition));
+      
+      // === SLICE 5: Net Profit ===
+      updateElementText('[data-metric="ebitda-np"]', formatNumber(getValueForPeriod(data.summary.ebitda, period)));
+      updateElementText('[data-metric="net-profit-margin-2"]', formatPercent(netMargin));
+      updateElementText('[data-metric="gross-profit-2"]', formatNumber(grossProfit));
+      updateElementText('[data-metric="forecasted-net-cash"]', formatNumber(getValueForPeriod(data.liquidityPosition.netCashPosition, period)));
+      updateElementText('[data-metric="reserves-solvability"]', formatNumber(getValueForPeriod(data.liquidityPosition.bankBalance, period)));
+      updateElementText('[data-metric="section-total-revenue"]', formatNumber(getValueForPeriod(data.summary.totalRevenue, period)));
+      updateComparisonBadges(data.comparisons);
+      
+      // Update charts if they exist
+      updateChartsWithLiveData();
+      updateTablesWithLiveData();
+    }
+
+    function updateElementText(selector, value) {
+      const el = document.querySelector(selector);
+      if (el) {
+        el.textContent = value;
+      }
+    }
+
+    function projectRowTemplate(project, isLast) {
+      const borderClass = isLast ? '' : 'border-b border-zinc-800';
+      return `
+        <tr class="${borderClass} hover:bg-zinc-800/50 transition-colors cursor-pointer">
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+              <div class="w-4 h-4 rounded bg-purple-500/10 flex items-center justify-center">
+                <span class="text-[6px] font-bold text-purple-500">${project.initial || '?'}</span>
+              </div>
+              <span class="font-instrument font-medium text-[10px] text-zinc-100">${project.project_name}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3 font-instrument text-[10px] text-zinc-300">${formatNumber(project.revenue)}</td>
+          <td class="px-4 py-3 font-instrument text-[10px] text-zinc-500">${formatNumber(project.cogs)}</td>
+          <td class="px-4 py-3 font-instrument text-[10px] text-zinc-500">${formatNumber(project.overhead)}</td>
+          <td class="px-4 py-3 font-instrument text-[10px] text-zinc-500">${formatNumber(project.net_profit)}</td>
+        </tr>
+      `;
+    }
+
+    function overheadRowTemplate(row, isLast) {
+      const borderClass = isLast ? '' : 'border-b border-zinc-800';
+      return `
+        <tr class="${borderClass} hover:bg-zinc-800/50 transition-colors cursor-pointer">
+          <td class="px-4 py-3">
+            <span class="font-instrument font-medium text-[10px] text-zinc-100">${row.category}</span>
+          </td>
+          <td class="px-4 py-3 font-instrument text-[10px] text-zinc-300">${formatNumber(row.amount)}</td>
+        </tr>
+      `;
+    }
+
+    function forecastCashRowTemplate(row, isLast) {
+      const borderClass = isLast ? '' : 'border-b border-zinc-800';
+      const cashClass = row.net_cash_position < 0 ? 'text-red-400' : 'text-emerald-500';
+      return `
+        <tr class="${borderClass} hover:bg-zinc-800/50 transition-colors">
+          <td class="px-3 py-2 font-instrument font-medium text-[10px] text-zinc-100">${row.period}</td>
+          <td class="px-3 py-2 font-instrument text-[10px] text-zinc-300">${formatNumber(row.revenue)}</td>
+          <td class="px-3 py-2 font-instrument text-[10px] text-zinc-500">${formatNumber(row.cogs)}</td>
+          <td class="px-3 py-2 font-instrument text-[10px] text-zinc-500">${formatNumber(row.overhead)}</td>
+          <td class="px-3 py-2 font-instrument text-[10px] text-zinc-500">${formatSignedNumber(row.income)}</td>
+          <td class="px-3 py-2 font-instrument text-[10px] ${cashClass}">${formatSignedNumber(row.net_cash_position)}</td>
+        </tr>
+      `;
+    }
+
+    function updateTablesWithLiveData() {
+      if (!liveFinancialData || !liveFinancialData.tables) return;
+
+      const projectBody = document.getElementById('projectFinancialTableBody');
+      if (projectBody) {
+        const rows = liveFinancialData.tables.projects || [];
+        projectBody.innerHTML = rows.map((row, index) => projectRowTemplate(row, index === rows.length - 1)).join('');
+      }
+
+      const overheadBody = document.getElementById('overheadCategoryTableBody');
+      if (overheadBody) {
+        const rows = liveFinancialData.tables.overheadCategories || [];
+        overheadBody.innerHTML = rows.map((row, index) => overheadRowTemplate(row, index === rows.length - 1)).join('');
+      }
+
+      const forecastBody = document.getElementById('forecastCashTableBody');
+      if (forecastBody) {
+        const rows = (liveFinancialData.tables.forecastCash || []).slice(0, 6);
+        forecastBody.innerHTML = rows.map((row, index) => forecastCashRowTemplate(row, index === rows.length - 1)).join('');
+      }
+    }
+
+    function updateChartsWithLiveData() {
+      if (!liveFinancialData) return;
+      const chartData = liveFinancialData.charts || null;
+      
+      // Update Forecast Financial Position chart
+      if (typeof forecastChart !== 'undefined' && forecastChart) {
+        const forecastRevenueValues = chartData ? chartData.forecast.revenue : getMonthlyArray(liveFinancialData.summary.totalRevenue);
+        const costsData = chartData ? chartData.forecast.cogs : getMonthlyArray(liveFinancialData.summary.cogs);
+        const overheadData = chartData ? chartData.forecast.overhead : getMonthlyArray(liveFinancialData.summary.operatingExpenses);
+        const profitData = chartData ? chartData.forecast.profit : getMonthlyArray(liveFinancialData.summary.netResult);
+        
+        if (chartData) forecastChart.data.labels = chartData.labels;
+        forecastChart.data.datasets[0].data = forecastRevenueValues;
+        forecastChart.data.datasets[1].data = costsData;
+        forecastChart.data.datasets[2].data = overheadData;
+        forecastChart.data.datasets[3].data = profitData;
+        applyDynamicAxis(forecastChart, allSeriesValues([forecastRevenueValues, costsData, overheadData, profitData]));
+        forecastChart.update('active');
+      }
+      
+      // Update Revenue chart (Slice 3)
+      if (typeof revenueChart !== 'undefined' && revenueChart) {
+        const stream1 = chartData ? chartData.revenueStreams[0] : getMonthlyArray(liveFinancialData.revenueStreams.stream1);
+        const stream2 = chartData ? chartData.revenueStreams[1] : getMonthlyArray(liveFinancialData.revenueStreams.stream2);
+        const stream3 = chartData ? chartData.revenueStreams[2] : getMonthlyArray(liveFinancialData.revenueStreams.stream3);
+        const stream4 = chartData ? chartData.revenueStreams[3] : getMonthlyArray(liveFinancialData.revenueStreams.stream4);
+        
+        if (chartData) revenueChart.data.labels = chartData.labels;
+        revenueChart.data.datasets[0].data = stream1;
+        revenueChart.data.datasets[1].data = stream2;
+        revenueChart.data.datasets[2].data = stream3;
+        revenueChart.data.datasets[3].data = stream4;
+        applyDynamicAxis(revenueChart, allSeriesValues([stream1, stream2, stream3, stream4]));
+        revenueChart.update('active');
+      }
+      
+      // Update Cost Ratio donut chart (Slice 4)
+      if (typeof costRatioChart !== 'undefined' && costRatioChart) {
+        if (chartData) {
+          costRatioChart.data.labels = chartData.costRatio.labels;
+          costRatioChart.data.datasets[0].data = chartData.costRatio.values;
+        } else {
+          const taxes = getValueForPeriod(liveFinancialData.summary.taxes, currentPeriod);
+          const salaries = getValueForPeriod(liveFinancialData.operatingExpenses.salaries, currentPeriod);
+          const socialCosts = getValueForPeriod(liveFinancialData.operatingExpenses.generalCosts, currentPeriod);
+          const projectCosts = getValueForPeriod(liveFinancialData.cogs.projectCosts, currentPeriod);
+          costRatioChart.data.datasets[0].data = [taxes, salaries, socialCosts, projectCosts];
+        }
+        costRatioChart.update('active');
+      }
+      
+      // Update Cash Position chart (Slice 5)
+      if (typeof cashPositionChart !== 'undefined' && cashPositionChart) {
+        const cashData = chartData ? chartData.cashPosition : getMonthlyArray(liveFinancialData.liquidityPosition.cashByMonth || liveFinancialData.liquidityPosition.netCashPosition);
+        if (chartData) cashPositionChart.data.labels = chartData.labels;
+        cashPositionChart.data.datasets[0].data = cashData;
+        applyDynamicAxis(cashPositionChart, cashData);
+        cashPositionChart.update('active');
+      }
+    }
+
+    // Listen for time period changes to update displayed values
+    window.addEventListener('timePeriodChange', (e) => {
+      if (liveFinancialData) {
+        updateDashboardWithLiveData();
+      }
+    });
+
+    // Fetch data when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeComparisonBindings();
+      loadAvailableYears().then(fetchFinancialData);
+    });
+
+    // Refresh data every 5 minutes
+    setInterval(fetchFinancialData, 5 * 60 * 1000);
+
+    // Handle time period toggle
+    function setTimePeriod(period) {
+      currentPeriod = period;
+      updatePeriodDetailSelector();
+      
+      // Update UI - remove active class from all buttons
+      document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // Add active class to selected button
+      const selectedBtn = document.querySelector(`[data-period="${period}"]`);
+      if (selectedBtn) {
+        selectedBtn.classList.add('active');
+      }
+      
+      console.log(`Time period changed to: ${period}`);
+      
+      fetchFinancialData();
+    }
+
+    // Handle KPI card clicks
+    function handleCardClick(cardId) {
+      console.log(`Card clicked: ${cardId}`);
+      
+      // Add your navigation or modal logic here
+      // Example: navigate to detail page
+      // window.location.href = `/details/${cardId}`;
+      
+      // Or show a modal with more details
+      alert(`Viewing details for: ${cardId.replace(/-/g, ' ').toUpperCase()}`);
+    }
+
+    let forecastChart;
+
+    // Initialize the chart
+    function initChart() {
+      const ctx = document.getElementById('forecastChart').getContext('2d');
+      
+      // Create gradients
+      const revenueGradient = ctx.createLinearGradient(0, 0, 0, 300);
+      revenueGradient.addColorStop(0, 'rgba(155, 223, 196, 0.8)');
+      revenueGradient.addColorStop(1, 'rgba(155, 223, 196, 0.1)');
+
+      const cogsGradient = ctx.createLinearGradient(0, 0, 0, 300);
+      cogsGradient.addColorStop(0, 'rgba(249, 155, 171, 0.7)');
+      cogsGradient.addColorStop(1, 'rgba(249, 155, 171, 0.1)');
+
+      const overheadGradient = ctx.createLinearGradient(0, 0, 0, 300);
+      overheadGradient.addColorStop(0, 'rgba(255, 180, 79, 0.6)');
+      overheadGradient.addColorStop(1, 'rgba(255, 180, 79, 0.1)');
+
+      const profitGradient = ctx.createLinearGradient(0, 0, 0, 300);
+      profitGradient.addColorStop(0, 'rgba(159, 151, 247, 0.5)');
+      profitGradient.addColorStop(1, 'rgba(159, 151, 247, 0.1)');
+
+      forecastChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Revenue',
+              data: [],
+              borderColor: '#9bdfc4',
+              backgroundColor: revenueGradient,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#9bdfc4',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              order: 4
+            },
+            {
+              label: 'COGS',
+              data: [],
+              borderColor: '#f99bab',
+              backgroundColor: cogsGradient,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#f99bab',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              order: 3
+            },
+            {
+              label: 'Overhead',
+              data: [],
+              borderColor: '#ffb44f',
+              backgroundColor: overheadGradient,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#ffb44f',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              order: 2
+            },
+            {
+              label: 'Profit',
+              data: [],
+              borderColor: '#9f97f7',
+              backgroundColor: profitGradient,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: '#9f97f7',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              order: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(39, 39, 42, 0.95)',
+              titleColor: '#fff',
+              bodyColor: '#a1a1aa',
+              borderColor: '#3f3f46',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: true,
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': ' + formatNumber(context.parsed.y);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(63, 63, 70, 0.5)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#a1a1aa',
+                font: {
+                  family: 'DM Sans',
+                  size: 10
+                }
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(63, 63, 70, 0.5)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#a1a1aa',
+                font: {
+                  family: 'DM Sans',
+                  size: 10
+                },
+                callback: function(value) {
+                  return formatCurrencyAxis(value);
+                },
+                stepSize: undefined
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Update chart data based on selected period
+    function updateChartData(period) {
+      fetchFinancialData();
+    }
+
+    // Initialize chart when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initChart);
+
+    // ============================================
+    // REVENUE CHART (Slice 3) - Stacked Area Chart
+    // ============================================
+    
+    let revenueChart;
+
+    // Initialize the Revenue chart
+    function initRevenueChart() {
+      const ctx = document.getElementById('revenueChart');
+      if (!ctx) return;
+      
+      const context = ctx.getContext('2d');
+      // Create gradients for each spec
+      const spec1Gradient = context.createLinearGradient(0, 0, 0, 200);
+      spec1Gradient.addColorStop(0, 'rgba(155, 223, 196, 0.8)');
+      spec1Gradient.addColorStop(1, 'rgba(155, 223, 196, 0.2)');
+
+      const spec2Gradient = context.createLinearGradient(0, 0, 0, 200);
+      spec2Gradient.addColorStop(0, 'rgba(249, 155, 171, 0.7)');
+      spec2Gradient.addColorStop(1, 'rgba(249, 155, 171, 0.2)');
+
+      const spec3Gradient = context.createLinearGradient(0, 0, 0, 200);
+      spec3Gradient.addColorStop(0, 'rgba(255, 180, 79, 0.6)');
+      spec3Gradient.addColorStop(1, 'rgba(255, 180, 79, 0.2)');
+
+      const spec4Gradient = context.createLinearGradient(0, 0, 0, 200);
+      spec4Gradient.addColorStop(0, 'rgba(159, 151, 247, 0.5)');
+      spec4Gradient.addColorStop(1, 'rgba(159, 151, 247, 0.2)');
+
+      revenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Revenue Spec 1',
+              data: [],
+              borderColor: '#9bdfc4',
+              backgroundColor: spec1Gradient,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              pointHoverBackgroundColor: '#9bdfc4',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              order: 4
+            },
+            {
+              label: 'Revenue Spec 2',
+              data: [],
+              borderColor: '#f99bab',
+              backgroundColor: spec2Gradient,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              pointHoverBackgroundColor: '#f99bab',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              order: 3
+            },
+            {
+              label: 'Revenue Spec 3',
+              data: [],
+              borderColor: '#ffb44f',
+              backgroundColor: spec3Gradient,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              pointHoverBackgroundColor: '#ffb44f',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              order: 2
+            },
+            {
+              label: 'Revenue Spec 4',
+              data: [],
+              borderColor: '#9f97f7',
+              backgroundColor: spec4Gradient,
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0,
+              pointHoverRadius: 5,
+              pointHoverBackgroundColor: '#9f97f7',
+              pointHoverBorderColor: '#fff',
+              pointHoverBorderWidth: 2,
+              order: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(39, 39, 42, 0.95)',
+              titleColor: '#fff',
+              bodyColor: '#a1a1aa',
+              borderColor: '#3f3f46',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: true,
+              callbacks: {
+                label: function(context) {
+                  return context.dataset.label + ': ' + formatNumber(context.parsed.y);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: 'rgba(63, 63, 70, 0.3)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#fff',
+                font: {
+                  family: 'DM Sans',
+                  size: 10,
+                  weight: 500
+                }
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(63, 63, 70, 0.3)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#fff',
+                font: {
+                  family: 'DM Sans',
+                  size: 10,
+                  weight: 500
+                },
+                callback: function(value) {
+                  return formatCurrencyAxis(value);
+                },
+                stepSize: undefined
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Update Revenue chart data based on selected period
+    function updateRevenueChartData(period) {
+      fetchFinancialData();
+    }
+
+    // Initialize Revenue chart when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initRevenueChart);
+
+    // ============================================
+    // COST RATIO DONUT CHART (Slice 4)
+    // ============================================
+    
+    let costRatioChart;
+
+    function initCostRatioChart() {
+      const ctx = document.getElementById('costRatioChart');
+      if (!ctx) return;
+
+      costRatioChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Taxes', 'Salary contracts', 'Social Costs', 'Project Costs'],
+          datasets: [{
+            data: [],
+            backgroundColor: [
+              '#a855f7',
+              '#06b6d4',
+              '#f97316',
+              '#3b82f6'
+            ],
+            borderColor: '#18181b',
+            borderWidth: 4,
+            hoverBorderWidth: 0,
+            hoverOffset: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          cutout: '70%',
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(39, 39, 42, 0.95)',
+              titleColor: '#fff',
+              bodyColor: '#a1a1aa',
+              borderColor: '#3f3f46',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  const value = context.parsed;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = total ? ((value / total) * 100).toLocaleString('en-US', { maximumFractionDigits: 1 }) : '0';
+                  return context.label + ': ' + formatNumber(value) + ' (' + percentage + '%)';
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Initialize Cost Ratio chart when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initCostRatioChart);
+
+    // ============================================
+    // CASH POSITION CHART (Slice 5) - Line Chart
+    // ============================================
+    
+    let cashPositionChart;
+
+    function initCashPositionChart() {
+      const ctx = document.getElementById('cashPositionChart');
+      if (!ctx) return;
+
+      // Create gradient for the line fill
+      const chartCtx = ctx.getContext('2d');
+      const gradient = chartCtx.createLinearGradient(0, 0, 0, 170);
+      gradient.addColorStop(0, 'rgba(6, 182, 212, 0.3)');
+      gradient.addColorStop(1, 'rgba(6, 182, 212, 0)');
+
+      cashPositionChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Net Cash Position',
+            data: [],
+            borderColor: '#06b6d4',
+            backgroundColor: gradient,
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#06b6d4',
+            pointBorderColor: '#18181b',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#27272a',
+              titleColor: '#ffffff',
+              bodyColor: '#a1a1aa',
+              borderColor: '#3f3f46',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: false,
+              callbacks: {
+                label: function(context) {
+                  return formatNumber(context.parsed.y);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              display: true,
+              grid: {
+                display: false,
+                drawBorder: false
+              },
+              ticks: {
+                color: '#71717a',
+                font: {
+                  family: "'Instrument Sans', sans-serif",
+                  size: 11
+                }
+              }
+            },
+            y: {
+              display: true,
+              grid: {
+                color: 'rgba(63, 63, 70, 0.5)',
+                drawBorder: false
+              },
+              ticks: {
+                color: '#71717a',
+                font: {
+                  family: "'Instrument Sans', sans-serif",
+                  size: 11
+                },
+                stepSize: undefined,
+                callback: function(value) {
+                  return formatCurrencyAxis(value);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateCashPositionChartData(period) {
+      fetchFinancialData();
+    }
+
+    // Initialize Cash Position chart when DOM is loaded
+    document.addEventListener('DOMContentLoaded', initCashPositionChart);
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Credentials
+credentials/
+*.json
+!vercel.json
+*.key
+*.pem
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.postgres
+
+# Cache
+.cache/
+*.cache
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Test coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# IDE
+.project
+.pydevproject
+.settings/
+
+# Application specific
+data/
+uploads/
+downloads/
+reports/
+
+# Backup files
+*.backup
+*.bak
+*.swp
+*~
+
+# Local source exports/reference workbooks
+*.xlsx
+*.xls
+*.csv
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Node (if using any frontend)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Docker (even though not using it, good practice)
+Dockerfile
+docker-compose.yml
+.dockerignore
