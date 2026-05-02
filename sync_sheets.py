@@ -63,18 +63,37 @@ class GoogleSheetsSync:
 
     def _authenticate_with_oauth(self):
         """Authenticate with a stored OAuth user token."""
+        import json
+        
         token_path = config.GOOGLE_OAUTH_TOKEN_PATH
         credentials = None
 
-        if os.path.exists(token_path):
+        # Try to load token from environment variable first (for Vercel/production)
+        token_env = os.getenv("GOOGLE_OAUTH_TOKEN")
+        if token_env:
+            try:
+                token_dict = json.loads(token_env)
+                credentials = Credentials.from_authorized_user_info(
+                    token_dict,
+                    GOOGLE_SHEETS_SCOPES,
+                )
+                logger.info("Loaded OAuth token from environment variable")
+            except Exception as e:
+                logger.error("Failed to parse GOOGLE_OAUTH_TOKEN from environment: %s", e)
+                credentials = None
+
+        # Fall back to file if env var not set (for local development)
+        if not credentials and os.path.exists(token_path):
             credentials = Credentials.from_authorized_user_file(
                 token_path,
                 GOOGLE_SHEETS_SCOPES,
             )
+            logger.info("Loaded OAuth token from file")
 
         if not credentials:
             logger.error(
-                "OAuth token not found at %s. Run `python auth_google.py` first.",
+                "OAuth token not found. Set GOOGLE_OAUTH_TOKEN environment variable "
+                "or run `python auth_google.py` to create %s",
                 token_path,
             )
             return None
